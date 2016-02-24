@@ -1,0 +1,119 @@
+druid_data:
+  image: alpine:3.3
+  volumes:
+    - /data/druid
+  command: 'true'
+
+druid: &DRUID
+  build: ./druid
+  volumes_from:
+    - druid_data
+
+mysql:
+  build: ./mysql
+  hostname: mysql
+  environment:
+    MYSQL_DATABASE: events
+    MYSQL_USER: druid
+    MYSQL_PASSWORD: druid
+    MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+  ports:
+    - "3306:3306"
+  volumes:
+    - /var/lib/mysql
+
+kafka:
+  build: ./kafka
+  hostname: kafka
+  ports:
+    - "9092:9092"
+  links:
+    - zookeeper:zk
+  environment:
+    KAFKA_CREATE_TOPICS: "events:1:1"
+    KAFKA_ADVERTISED_PORT: 9092
+
+kafka_shell:
+  build: ./kafka
+  hostname: kafka_shell
+  links:
+    - zookeeper:zk
+    - kafka
+    - druid_broker
+    - druid_coordinator
+  command: /bin/bash
+
+zookeeper:
+  image: jplock/zookeeper
+  hostname: zookeeper
+  ports:
+    - "2181:2181"
+
+druid_coordinator:
+  <<: *DRUID
+  hostname: druid-coordinator
+  command: ./bin/start_node.sh coordinator
+  links:
+    - zookeeper
+    - mysql
+  ports:
+    - "8081:8081"
+
+druid_broker:
+  <<: *DRUID
+  hostname: druid-broker
+  command: ./bin/start_node.sh broker
+  links:
+    - zookeeper
+    - druid_historical
+    - druid_realtime
+  ports:
+    - "8082:8082"
+
+druid_historical:
+  <<: *DRUID
+  hostname: druid-historical
+  command: ./bin/start_node.sh historical
+  links:
+    - zookeeper
+  ports:
+    - "8083:8083"
+
+druid_realtime:
+  <<: *DRUID
+  hostname: druid-realtime
+  command: ./bin/start_node.sh realtime
+  environment:
+    JAVA_ARGS: -Ddruid.realtime.specFile=specs/event.spec
+  links:
+    - zookeeper
+    - kafka
+    - druid_coordinator
+    - mysql
+  ports:
+    - "8084:8084"
+
+druid_overlord:
+  <<: *DRUID
+  hostname: druid-overlord
+  command: ./bin/start_node.sh overlord
+  links:
+    - zookeeper
+    - mysql
+  ports:
+    - "8090:8090"
+
+druid_middle_manager:
+  <<: *DRUID
+  hostname: druid-middle-manager
+  command: ./bin/start_node.sh middleManager
+  links:
+    - zookeeper
+
+event_pump:
+  hostname: event-pump
+  build: ./event_pump
+  links:
+    - kafka
+  environment:
+    KAFKA_TOPIC: events
