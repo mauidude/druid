@@ -2,7 +2,7 @@
 
 ## Setup
 
-1. (Create a new docker-machine)[https://docs.docker.com/machine/get-started/].
+1. [Create a new docker-machine](https://docs.docker.com/machine/get-started/).
 
 ```
 # using virtual box
@@ -65,7 +65,7 @@ The IP is the IP of your docker-machine which can be found by running `docker-ma
 
 These configurations are mostly the default ones which are NOT meant for production. Look at the documentation at druid.io to find appropriate production-level configurations.
 
-Configurations are provided to Druid through property files located at (druid/config)[druid/config]. Environment variables will be substituted by using the syntax `$MY_ENV_VAR` in the file. The container(s) will need to be rebuilt after a change to the configs.
+Configurations are provided to Druid through property files located at [druid/config](druid/config). Environment variables will be substituted by using the syntax `$MY_ENV_VAR` in the file. The container(s) will need to be rebuilt after a change to the configs.
 
 ## Useful Documentation
 
