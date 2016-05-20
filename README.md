@@ -69,6 +69,6 @@ Configurations are provided to Druid through property files located at (druid/co
 
 ## Useful Documentation
 
-- (Druid Overview)[http://druid.io/docs/latest/design/design.html]
+- [Druid Overview](http://druid.io/docs/latest/design/design.html)
 
 
