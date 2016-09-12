@@ -117,3 +117,11 @@ event_pump:
     - kafka
   environment:
     KAFKA_TOPIC: events
+
+server:
+  hostname: server
+  build: ./server
+  links:
+    - druid_broker
+  environment:
+    PORT: 9090
