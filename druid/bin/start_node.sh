@@ -6,7 +6,7 @@ shopt -s expand_aliases
 trap "exit 1" 1 2 3 15
 
 SCRIPT_DIR=$( cd $(dirname $0)/.. && pwd )
-MAVEN_DIR="${SCRIPT_DIR}/extensions-repo"
+EXTENSIONS_DIR="${SCRIPT_DIR}/extensions"
 SERVER_TYPE="$1"
 
 if [ "x${SERVER_TYPE}" = "x" ]
@@ -28,13 +28,14 @@ cd ${CURR_DIR}
 
 # start process
 JAVA_ARGS="${JAVA_ARGS} -Xmx512m -Duser.timezone=UTC -Dfile.encoding=UTF-8"
-JAVA_ARGS="${JAVA_ARGS} -Ddruid.extensions.localRepository=${MAVEN_DIR}"
+JAVA_ARGS="${JAVA_ARGS} -Ddruid.extensions.directory=${EXTENSIONS_DIR}"
 
 DRUID_CP="${SCRIPT_DIR}/config/_common"
 DRUID_CP="${DRUID_CP}:${SCRIPT_DIR}/config/$SERVER_TYPE"
 DRUID_CP="${DRUID_CP}:${SCRIPT_DIR}/lib/*"
-DRUID_CP="${DRUID_CP}:${MAVEN_DIR}/*"
+DRUID_CP="${DRUID_CP}:${EXTENSIONS_DIR}/*"
 
 echo "using classpath $DRUID_CP in `pwd`"
+echo "using java args $JAVA_ARGS"
 
 exec java ${JAVA_ARGS} -classpath "${DRUID_CP}" io.druid.cli.Main server "$SERVER_TYPE"

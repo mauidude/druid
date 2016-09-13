@@ -1,20 +1,23 @@
 FROM java:8
 
-ENV DRUID_VERSION 0.8.3
-RUN wget -q -O - http://static.druid.io/artifacts/releases/druid-$DRUID_VERSION-bin.tar.gz | tar -xzf - -C /opt
+ENV DRUID_VERSION 0.9.1.1
+RUN wget -q -O - http://static.druid.io/artifacts/releases/druid-$DRUID_VERSION-bin.tar.gz | tar -xzvf - -C /opt
 
 RUN mv /opt/druid-$DRUID_VERSION /opt/druid
 
-VOLUME ["/data/druid"]
-
 WORKDIR /opt/druid
 
-COPY config /opt/druid/config
-COPY bin /opt/druid/bin
-COPY specs /opt/druid/specs
-COPY entrypoint.sh /opt/druid/entrypoint.sh
+# mysql metadata storage extension is not included in 0.9, so install separately
+RUN mkdir -p extensions/mysql-metadata-storage
 
-# pull maven dependencies
-RUN java -classpath "config/_common:lib/*" io.druid.cli.Main tools pull-deps
+RUN wget -q -O - http://static.druid.io/artifacts/releases/mysql-metadata-storage-$DRUID_VERSION.tar.gz | \
+  tar -xzvf - -C extensions
+
+VOLUME ["/data/druid"]
+
+COPY config config
+COPY bin bin
+COPY specs specs
+COPY entrypoint.sh entrypoint.sh
 
 ENTRYPOINT ["./entrypoint.sh"]
