@@ -62,6 +62,7 @@ services:
 
   druid-coordinator:
     <<: *DRUID
+    hostname: druid-coordinator
     command: ./bin/start_node.sh coordinator
     links:
       - zookeeper
@@ -72,6 +73,7 @@ services:
 
   druid-broker:
     <<: *DRUID
+    hostname: druid-broker
     command: ./bin/start_node.sh broker
     links:
       - zookeeper
@@ -83,6 +85,7 @@ services:
 
   druid-historical:
     <<: *DRUID
+    hostname: druid-historical
     command: ./bin/start_node.sh historical
     links:
       - zookeeper
@@ -92,6 +95,7 @@ services:
 
   druid-realtime:
     <<: *DRUID
+    hostname: druid-realtime
     command: ./bin/start_node.sh realtime
     environment:
       JAVA_ARGS: -Ddruid.realtime.specFile=specs/event.spec
@@ -117,6 +121,7 @@ services:
 
   druid-middle-manager:
     <<: *DRUID
+    hostname: druid-middle-manager
     command: ./bin/start_node.sh middleManager
     links:
       - zookeeper
