@@ -7,5 +7,6 @@ ADD . /opt/go
 
 RUN go build -v event_pump
 
-ENTRYPOINT ["./entrypoint.sh"]
+ENV KAFKA_BROKER_LIST=kafka:9092
+
 CMD ["./event_pump"]

@@ -7,17 +7,24 @@ RUN mv /opt/druid-$DRUID_VERSION /opt/druid
 
 WORKDIR /opt/druid
 
-# mysql metadata storage extension is not included in 0.9, so install separately
-RUN mkdir -p extensions/mysql-metadata-storage
+# install extensions via maven
+# install to tmp directory because adding them directly
+# to extensions directory causes an error
+RUN java -classpath "lib/*" \
+  -Ddruid.extensions.directory=/tmp/extensions \
+  -Ddruid.extensions.hadoopDependenciesDir=/tmp/hadoop-dependencies \
+  io.druid.cli.Main tools pull-deps \
+  --defaultVersion $DRUID_VERSION \
+  --no-default-hadoop \
+  -c io.druid.extensions:mysql-metadata-storage \
+  -c io.druid.extensions.contrib:statsd-emitter
 
-RUN wget -q -O - http://static.druid.io/artifacts/releases/mysql-metadata-storage-$DRUID_VERSION.tar.gz | \
-  tar -xzvf - -C extensions
+RUN mv /tmp/extensions/* extensions
+RUN rm -rf /tmp
 
-VOLUME ["/data/druid"]
+VOLUME ["/data/druid", "/opt/druid/config", "/opt/druid/specs"]
 
-COPY config config
 COPY bin bin
-COPY specs specs
 COPY entrypoint.sh entrypoint.sh
 
 ENTRYPOINT ["./entrypoint.sh"]

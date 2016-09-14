@@ -1,119 +1,136 @@
-druid_data:
-  image: alpine:3.3
-  volumes:
-    - /data/druid
-  command: 'true'
+version: '2'
+services:
+  druid: &DRUID
+    build: ./druid
+    volumes:
+      - "./druid/config:/opt/druid/config"
+      - "./druid/specs:/opt/druid/specs"
+      - "druid-data:/data/druid"
 
-druid: &DRUID
-  build: ./druid
-  volumes_from:
-    - druid_data
+  statsd:
+    image: hopsoft/graphite-statsd
+    hostname: statsd
+    ports:
+      - "8000:80"
+      - "8125:8125/udp"
+    volumes:
+      - "stats-data:/opt/graphite/storage"
 
-mysql:
-  build: ./mysql
-  hostname: mysql
-  environment:
-    MYSQL_DATABASE: events
-    MYSQL_USER: druid
-    MYSQL_PASSWORD: druid
-    MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
-  ports:
-    - "3306:3306"
-  volumes:
-    - /var/lib/mysql
+  mysql:
+    build: ./mysql
+    hostname: mysql
+    environment:
+      MYSQL_DATABASE: events
+      MYSQL_USER: druid
+      MYSQL_PASSWORD: druid
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    ports:
+      - "3306:3306"
+    volumes:
+      - /var/lib/mysql
 
-kafka:
-  build: ./kafka
-  hostname: kafka
-  ports:
-    - "9092:9092"
-  links:
-    - zookeeper:zk
-  environment:
-    KAFKA_CREATE_TOPICS: "events:1:1"
-    KAFKA_ADVERTISED_PORT: 9092
+  kafka:
+    build: ./kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"
+    links:
+      - zookeeper
+    environment:
+      KAFKA_CREATE_TOPICS: "events:1:1"
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper
 
-kafka_shell:
-  build: ./kafka
-  hostname: kafka_shell
-  links:
-    - zookeeper:zk
-    - kafka
-    - druid_broker
-    - druid_coordinator
-  command: /bin/bash
+  kafka_shell:
+    build: ./kafka
+    hostname: kafka_shell
+    links:
+      - zookeeper
+      - kafka
+      - druid-broker
+      - druid-coordinator
+    command: /bin/bash
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper
 
-zookeeper:
-  image: jplock/zookeeper
-  hostname: zookeeper
-  ports:
-    - "2181:2181"
+  zookeeper:
+    image: jplock/zookeeper
+    hostname: zookeeper
+    ports:
+      - "2181:2181"
 
-druid_coordinator:
-  <<: *DRUID
-  hostname: druid-coordinator
-  command: ./bin/start_node.sh coordinator
-  links:
-    - zookeeper
-    - mysql
-  ports:
-    - "8081:8081"
+  druid-coordinator:
+    <<: *DRUID
+    command: ./bin/start_node.sh coordinator
+    links:
+      - zookeeper
+      - mysql
+      - statsd
+    ports:
+      - "8081:8081"
 
-druid_broker:
-  <<: *DRUID
-  hostname: druid-broker
-  command: ./bin/start_node.sh broker
-  links:
-    - zookeeper
-    - druid_historical
-    - druid_realtime
-  ports:
-    - "8082:8082"
+  druid-broker:
+    <<: *DRUID
+    command: ./bin/start_node.sh broker
+    links:
+      - zookeeper
+      - druid-historical
+      - druid-realtime
+      - statsd
+    ports:
+      - "8082:8082"
 
-druid_historical:
-  <<: *DRUID
-  hostname: druid-historical
-  command: ./bin/start_node.sh historical
-  links:
-    - zookeeper
-  ports:
-    - "8083:8083"
+  druid-historical:
+    <<: *DRUID
+    command: ./bin/start_node.sh historical
+    links:
+      - zookeeper
+      - statsd
+    ports:
+      - "8083:8083"
 
-druid_realtime:
-  <<: *DRUID
-  hostname: druid-realtime
-  command: ./bin/start_node.sh realtime
-  environment:
-    JAVA_ARGS: -Ddruid.realtime.specFile=specs/event.spec
-  links:
-    - zookeeper
-    - kafka
-    - druid_coordinator
-    - mysql
-  ports:
-    - "8084:8084"
+  druid-realtime:
+    <<: *DRUID
+    command: ./bin/start_node.sh realtime
+    environment:
+      JAVA_ARGS: -Ddruid.realtime.specFile=specs/event.spec
+    links:
+      - zookeeper
+      - kafka
+      - druid-coordinator
+      - mysql
+      - statsd
+    ports:
+      - "8084:8084"
 
-druid_overlord:
-  <<: *DRUID
-  hostname: druid-overlord
-  command: ./bin/start_node.sh overlord
-  links:
-    - zookeeper
-    - mysql
-  ports:
-    - "8090:8090"
+  druid-overlord:
+    <<: *DRUID
+    hostname: druid-overlord
+    command: ./bin/start_node.sh overlord
+    links:
+      - zookeeper
+      - mysql
+      - statsd
+    ports:
+      - "8090:8090"
 
-druid_middle_manager:
-  <<: *DRUID
-  hostname: druid-middle-manager
-  command: ./bin/start_node.sh middleManager
-  links:
-    - zookeeper
+  druid-middle-manager:
+    <<: *DRUID
+    command: ./bin/start_node.sh middleManager
+    links:
+      - zookeeper
+      - statsd
 
-event_pump:
-  hostname: event-pump
-  build: ./event_pump
-  links:
-    - kafka
-  environment:
-    KAFKA_TOPIC: events
+  event-pump:
+    build: ./event_pump
+    links:
+      - kafka
+    environment:
+      KAFKA_TOPIC: events
+
+volumes:
+  druid-data:
+    driver: local
+  stats-data:
+    driver: local

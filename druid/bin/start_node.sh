@@ -9,10 +9,16 @@ SCRIPT_DIR=$( cd $(dirname $0)/.. && pwd )
 EXTENSIONS_DIR="${SCRIPT_DIR}/extensions"
 SERVER_TYPE="$1"
 
-if [ "x${SERVER_TYPE}" = "x" ]
+if [ -z "${SERVER_TYPE// }" ]
 then
   echo "usage: $0 server-type" >& 2
   exit 2
+fi
+
+if [[ -z "${JAVA_MX// }" ]]
+then
+  JAVA_MX="512m"
+  echo "defaulting to -Xmx$JAVA_MX"
 fi
 
 if [[ ! -d "${SCRIPT_DIR}/lib" || ! -d "${SCRIPT_DIR}/config" ]]; then
@@ -27,7 +33,7 @@ SCRIPT_DIR=`pwd`
 cd ${CURR_DIR}
 
 # start process
-JAVA_ARGS="${JAVA_ARGS} -Xmx512m -Duser.timezone=UTC -Dfile.encoding=UTF-8"
+JAVA_ARGS="${JAVA_ARGS} -Xmx${JAVA_MX} -Duser.timezone=UTC -Dfile.encoding=UTF-8"
 JAVA_ARGS="${JAVA_ARGS} -Ddruid.extensions.directory=${EXTENSIONS_DIR}"
 
 DRUID_CP="${SCRIPT_DIR}/config/_common"
